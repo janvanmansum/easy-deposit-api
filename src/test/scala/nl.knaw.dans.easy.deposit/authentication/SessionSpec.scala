@@ -162,11 +162,15 @@ class SessionSpec extends TestSupportFixture with ServletFixture with ScalatraSu
   }
 
   "post /auth/logout" should "clear the cookie" in {
-    authMocker.expectsNoUser
-    val jwtCookie = createJWT(AuthUser("foo", state = UserState.active))
+    val authenticationProvider = new AuthenticationMocker() {
+      override val mockedAuthenticationProvider: AuthenticationProvider = mock[AuthenticationProvider]
+      expectsNoUser
+    }.mockedAuthenticationProvider
+    addServlet(new AuthTestServlet(authenticationProvider) with PlainHeaders with PlainCookies with PlainRemoteAddress, "/auth2/*")
 
+    val jwtCookie = createJWT(AuthUser("foo", state = UserState.active))
     post(
-      uri = "/auth/logout",
+      uri = "/auth2/logout",
       headers = Seq(("Cookie", s"${ Scentry.scentryAuthKey }=$jwtCookie"))
     ) {
       status shouldBe NO_CONTENT_204
