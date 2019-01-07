@@ -17,10 +17,18 @@ package nl.knaw.dans.easy.deposit.authentication
 
 import nl.knaw.dans.easy.deposit.logging._
 import org.scalatra.NoContent
+import nl.knaw.dans.lib.error._
 
 class AuthTestServlet(authProvider: AuthenticationProvider) extends AbstractTestServlet(authProvider) {
 
   // TODO: change the code so that the methods in AuthServlet are called instead of duplicating them here
+  override protected def fromSession: PartialFunction[String, AuthUser] = {
+    // prevents refreshing a cookie on logout
+    case token: String => decodeJWT(token)
+      .doIfFailure { case t => logger.info(s"invalid authentication: $t") }
+      .getOrElse(null)
+  }
+
   post("/login") {
     login()
     NoContent().logResponse
